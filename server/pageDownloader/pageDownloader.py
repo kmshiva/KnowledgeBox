@@ -1,5 +1,6 @@
 import sys, datetime, urlparse, uuid, os, os.path, time, threading, subprocess, web, re
 from BeautifulSoup import BeautifulSoup
+from decruft import decruft
 
 def downloadFile(filename):
 	fd = open("./links/" + filename, "r")
@@ -121,6 +122,19 @@ if len(sys.argv[1].strip()) > 0 or sys.argv[:4].lower() != "http":
 		print "done"
 	
 		print os.path.join(codeDir, sanitizedFileName)
+		
+		fd = open(os.path.join(codeDir, sanitizedFileName), "r")
+		htmlContent = fd.read()
+		fd.close()
+		
+		doc = decruft.Document(htmlContent)
+		cleanDoc = doc.summary().encode("ascii", "ignore")
+		cleanDoc = "<html><head><title>" + pageTitle + "</title></head><body>" + cleanDoc + "</body></html>"
+		
+		fd = open(os.path.join(outputDir, "summary.html"), "w")
+		fd.write(cleanDoc)
+		fd.close()
+		
 		sys.exit(0)
 
 	except Exception as ex:
@@ -132,7 +146,7 @@ else:
 	print """No arguments specified.
 	
 	Use like this:
-	pageDownloader.py <url>
+	pageDownloader.py <url> <pageTitle>
 	"""
 
 # while 1:
