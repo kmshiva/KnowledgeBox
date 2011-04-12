@@ -1,0 +1,59 @@
+<html>
+	<head>
+		<script>
+			// var photos = [];
+			// 			var req = new XMLHttpRequest();
+			// 			req.open(
+			// 			    "GET",
+			// 			    "http://api.flickr.com/services/rest/?" +
+			// 			        "method=flickr.photos.search&" +
+			// 			        "api_key=90485e931f687a9b9c2a66bf58a3861a&" +
+			// 			        "text=hello%20world&" +
+			// 			        "safe_search=1&" +  // 1 is "safe"
+			// 			        "content_type=1&" +  // 1 is "photos only"
+			// 			        "sort=relevance&" +  // another good one is "interestingness-desc"
+			// 			        "per_page=20",
+			// 			    true);
+			// 			req.onload = processPhotos;
+			// 			req.send(null);
+			// 			
+			// 			function processPhotos()
+			// 			{
+			// 				photos = req.responseXML.getElementsByTagName("photo");
+			// 				alert(photos.length);
+			// 			}
+			
+			var urls = [];
+			
+			chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) 
+			{
+				// console.log(changeInfo);
+				if (changeInfo.status == "complete" && tab.url.indexOf("chrome://") != 0)
+				{
+					console.log("updated tab:" + tab.url);
+					
+					urls.push({
+						"url": tab.url,
+						"tabId": tabId
+					});
+					
+					// chrome.tabs.executeScript(tabId, {file: "timeSpentCalc.js"});
+				}
+			});
+			
+			setInterval(function(){
+				chrome.tabs.getSelected(null, function(tab)
+				{
+					chrome.idle.queryState(30, function(newState)
+					{
+						if (newState == "active")
+						{
+							if (tab.url.indexOf("chrome://") != 0)
+								console.log("1 second in " + tab.url);
+						}
+					});
+				});
+			}, 1000);
+		</script>
+	</head>
+</html>

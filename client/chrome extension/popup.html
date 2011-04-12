@@ -1,0 +1,65 @@
+<html>
+<head>
+<style>
+body {
+  min-width:357px;
+  overflow-x:hidden;
+}
+
+img {
+  margin:5px;
+  border:2px solid black;
+  vertical-align:middle;
+  width:75px;
+  height:75px;
+}
+</style>
+
+<script>
+var bg = chrome.extension.getBackgroundPage();
+
+function main()
+{
+	showURLs();
+	// showPhotos(bg.photos);
+}
+
+function showURLs()
+{
+	for (var i=0; i < bg.urls.length; i++) 
+	{
+		var url = bg.urls[i];
+		var div = document.createElement("div");
+		div.innerHTML = "<span>tabId:" + url.tabId + "</span><span>url:" + url.url + "</span>";
+		document.getElementById("content").appendChild(div);
+	};
+}
+
+// function showPhotos(photos) 
+// {
+//   for (var i = 0, photo; photo = photos[i]; i++) {
+//     var img = document.createElement("image");
+//     img.src = constructImageURL(photo);
+//     document.getElementById("content").appendChild(img);
+//   }
+// }
+// 
+// // See: http://www.flickr.com/services/api/misc.urls.html
+// function constructImageURL(photo) {
+//   return "http://farm" + photo.getAttribute("farm") +
+//       ".static.flickr.com/" + photo.getAttribute("server") +
+//       "/" + photo.getAttribute("id") +
+//       "_" + photo.getAttribute("secret") +
+//       "_s.jpg";
+// }
+</script>
+</head>
+<body onload="main();">
+	<div>
+		Flickr Images:
+	</div>
+	<div id="content">
+		
+	</div>
+</body>
+</html>
