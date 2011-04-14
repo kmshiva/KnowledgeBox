@@ -1,5 +1,6 @@
 <html>
 	<head>
+		<script src="jquery-1.4.3.min.js" type="text/javascript" charset="utf-8"></script>
 		<script>
 			// var photos = [];
 			// 			var req = new XMLHttpRequest();
@@ -25,18 +26,15 @@
 			
 			var urls = [];
 			
+			console.log(jQuery);
+			
 			chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) 
 			{
-				// console.log(changeInfo);
-				if (changeInfo.status == "complete" && tab.url.indexOf("chrome://") != 0)
+				console.log(changeInfo, tab.status);
+				if (tab.status == "complete" && tab.url.indexOf("chrome://") != 0 && tab.url.indexOf("http://") == 0)
 				{
-					console.log("updated tab:" + tab.url);
-					
-					urls.push({
-						"url": tab.url,
-						"tabId": tabId
-					});
-					
+					console.log("new url:" + tab.url, tab.title);
+					$.post("http://localhost:8080/url", { url: tab.url, title: tab.title, collection: "", tags: "" } );
 					// chrome.tabs.executeScript(tabId, {file: "timeSpentCalc.js"});
 				}
 			});
@@ -48,8 +46,8 @@
 					{
 						if (newState == "active")
 						{
-							if (tab.url.indexOf("chrome://") != 0)
-								console.log("1 second in " + tab.url);
+							// if (tab.url.indexOf("chrome://") != 0)
+							// 	console.log("1 second in " + tab.url);
 						}
 					});
 				});
