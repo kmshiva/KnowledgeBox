@@ -28,6 +28,7 @@ __version__ = "0.5"
                 
 import sys
 import optparse
+import codecs
 
 try:
   import Foundation
@@ -45,14 +46,34 @@ class AppDelegate (Foundation.NSObject):
     def applicationDidFinishLaunching_(self, aNotification):
         webview = aNotification.object().windows()[0].contentView()
         webview.frameLoadDelegate().getURL(webview)
+        self.performSelector_withObject_afterDelay_( "timeout:", None, 60 )
+
+    def timeout_(self, obj):
+        NSLog("timed out!")
+        NSApplication.sharedApplication().terminate_(None)
 
 class WebkitLoad (Foundation.NSObject, WebKit.protocols.WebFrameLoadDelegate):
+
     # what happens if something goes wrong while loading
     def webView_didFailLoadWithError_forFrame_(self,webview,error,frame):
-        print " ... something went wrong" 
+        errorDesc = error.localizedDescription()
+        if errorDesc.find("NSURLErrorDomain error -999.") != -1:
+            return
+        
+        print "normal fail"
+        print " ... something went wrong: "+errorDesc
         self.getURL(webview)
+
     def webView_didFailProvisionalLoadWithError_forFrame_(self,webview,error,frame):
-        print " ... something went wrong" 
+        # print "provisional fail",error.code
+        errorDesc = error.localizedDescription()
+        if errorDesc.find("NSURLErrorDomain error -999.") != -1:
+            return
+        
+        print
+        print " ... something went wrong: |"+error.localizedDescription()+"|"
+        
+
         self.getURL(webview)
 
     def makeFilename(self,URL,options):
@@ -166,12 +187,9 @@ class WebkitLoad (Foundation.NSObject, WebKit.protocols.WebFrameLoadDelegate):
             bitmapdata = self.captureView(view)  
             self.saveImages(bitmapdata,filename,self.options)
 
-            # print " ... done"
-            #             print "trying web archive stuff..."
-            #             webview.mainFrame().dataSource().webArchive().data().writeToFile_atomically_("./mywebarchive.webarchive", True)
-            #             print "done archiving"
-
+            print " ... done"
             self.getURL(webview)
+
 
 def main():
 
@@ -279,4 +297,3 @@ examples:
     app.run()    
 
 if __name__ == '__main__' : main()
-

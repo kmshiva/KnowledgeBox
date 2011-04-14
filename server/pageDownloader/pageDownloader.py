@@ -99,7 +99,7 @@ if len(sys.argv[1].strip()) > 0 or sys.argv[:4].lower() != "http":
 
 		pageTitleDir = pageTitle + " " + str(uuid.uuid4())
 
-		outputDir = os.path.join("./", dateDir, hostDir, pageTitleDir)
+		outputDir = os.path.join("./savedPages/", dateDir, hostDir, pageTitleDir)
 		
 		if not os.path.exists(outputDir):
 			os.makedirs(outputDir)
@@ -111,6 +111,8 @@ if len(sys.argv[1].strip()) > 0 or sys.argv[:4].lower() != "http":
 		print "="*80
 		print
 		print "successful: ", snapshotsDir, codeDir
+		print
+		
 		mainHTMLFile = findMainHTMLFile(codeDir)
 		print "main file", mainHTMLFile
 		sanitizedFileName = sanitizeFileName(mainHTMLFile)
