@@ -1,5 +1,17 @@
 var imagehostURL = "http://localhost/~kmshiva/temp/";
 
+function getPageAccessId()
+{
+	var inp = document.getElementById("accessId");
+	if (inp != null)
+	{
+		var accessID = inp.getAttribute("value");
+		return accessID;
+	}
+	else
+		return null;
+}
+
 // Models
 var PageSet = Backbone.Model.extend({
 	initialize: function() {
@@ -19,7 +31,8 @@ var PageTag = PageSet.extend({
 var PageSetCollection = Backbone.Collection.extend({
 	model: PageSet,
 	initialize: function() {
-		this.bind("change:selected", this.sort);
+		this.bind("change:selected", this.onPageSetSelectedChange);
+		this.bind("add", this.onAdd);
 	},
 	searchNames: function(searchText) {
 		var reg = new RegExp(searchText, "i");
@@ -36,6 +49,42 @@ var PageSetCollection = Backbone.Collection.extend({
 			return 0;
 		else
 			return 1;
+	},
+	onPageSetSelectedChange: function(pageSet, selected)
+	{
+		this.sort();
+		var action = "";
+		if (this instanceof PageTagCollection)
+		{
+			action = selected ? "addTagForURL" : "removeTagFromURL";
+			chrome.extension.sendRequest({action: action, accessId: getPageAccessId(), tag: pageSet.get("name")}, function() {
+				console.log("done", action);
+			});
+		}
+		else
+		{
+			action = selected ? "addToCollection" : "removeFromCollection";
+			chrome.extension.sendRequest({action: action, accessId: getPageAccessId(), collectionName: pageSet.get("name")}, function() {
+				console.log("done", action);
+			});
+		}
+		
+		
+	},
+	onAdd: function(pageSet)
+	{
+		if (this instanceof PageTagCollection)
+		{
+			chrome.extension.sendRequest({action: "addTagForURL", tag: pageSet.get("name"), accessId: getPageAccessId()}, function() {
+				console.log("added new tag");
+			});
+		}
+		else
+		{
+			chrome.extension.sendRequest({action: "insertCollection", collectionName: pageSet.get("name"), accessId: getPageAccessId()}, function() {
+				console.log("added new collection");
+			});
+		}
 	}
 });
 
@@ -214,7 +263,7 @@ var PageSetCollectionView = Backbone.View.extend({
 		{
 			var newCollectionName = $(e.currentTarget).val();
 			if (newCollectionName.length > 0)
-				this.collection.add({"name": newCollectionName});
+				this.collection.add({"name": newCollectionName, "selected": true});
 			
 			$(e.currentTarget).parent().click();
 		}
@@ -264,37 +313,32 @@ $(document).ready(function() {
 	&nbsp;</div>'
 	);
 	
-	pageSets = new PageSetCollection([
-		{"name": "South America"},
-		{"name": "Asia"},
-		{"name": "India"},
-		{"name": "China"},
-		{"name": "Japan"},
-		{"name": "Russia"},
-		{"name": "Bhutan"},
-		{"name": "Nepal"}
-	]);
+	chrome.extension.sendRequest({action: "getAllCollections"}, function(data) {
+		if (data)
+		{
+			data = $.parseJSON(data);
+			pageSets = new PageSetCollection(data);
 
-	collectionsView = new PageSetCollectionView({
-		collection: pageSets,
-		el: $("#collections")[0]
+			collectionsView = new PageSetCollectionView({
+				collection: pageSets,
+				el: $("#collections")[0]
+			});
+
+			collectionsView.render();
+		}
 	});
-
-	collectionsView.render();
 	
-	tagSets = new PageTagCollection([
-		{"name": "travel"},
-		{"name": "flight"},
-		{"name": "brazil"},
-		{"name": "hotels"},
-		{"name": "cars"},
-		{"name": "tourism"}
-	]);
+	chrome.extension.sendRequest({action: "getTagsForURLFromDelicious", "url": window.location.href}, function(data) {
+		
+		tagSets = new PageTagCollection(data);
 
-	tagsView = new PageTagCollectionView({
-		collection: tagSets,
-		el: $("#tags")[0]
+		tagsView = new PageTagCollectionView({
+			collection: tagSets,
+			el: $("#tags")[0]
+		});
+
+		tagsView.render();
 	});
+	
 
-	tagsView.render();
 });

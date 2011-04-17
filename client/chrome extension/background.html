@@ -1,41 +1,136 @@
 <html>
 	<head>
 		<script src="jquery-1.4.3.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="jquery.md5.js" type="text/javascript" charset="utf-8"></script>
+		<script src="underscore.js" type="text/javascript" charset="utf-8"></script>
 		<script>
-			// var photos = [];
-			// 			var req = new XMLHttpRequest();
-			// 			req.open(
-			// 			    "GET",
-			// 			    "http://api.flickr.com/services/rest/?" +
-			// 			        "method=flickr.photos.search&" +
-			// 			        "api_key=90485e931f687a9b9c2a66bf58a3861a&" +
-			// 			        "text=hello%20world&" +
-			// 			        "safe_search=1&" +  // 1 is "safe"
-			// 			        "content_type=1&" +  // 1 is "photos only"
-			// 			        "sort=relevance&" +  // another good one is "interestingness-desc"
-			// 			        "per_page=20",
-			// 			    true);
-			// 			req.onload = processPhotos;
-			// 			req.send(null);
-			// 			
-			// 			function processPhotos()
-			// 			{
-			// 				photos = req.responseXML.getElementsByTagName("photo");
-			// 				alert(photos.length);
-			// 			}
+			var urlBase = "http://localhost:8080";
+
+			var responseHandlers = 
+			{
+				getAllCollections: function(req, cb)
+				{
+					$.get(urlBase + "/collection/", function(collections) {
+						cb(collections);
+					});
+				},
+
+				getTagsForURLFromDelicious: function(req, cb)
+				{
+					var urlHash = $.md5(req["url"]);
+					console.log("Hash:", urlHash);
+					
+					$.get("http://feeds.delicious.com/v2/json/urlinfo/blogbadge", {hash: urlHash}, function(data) {
+						console.log("del data:", data);
+						if (data && data.length > 0)
+						{
+							var topTagsObj = data[0]["top_tags"];
+							var topTags = [];
+							for (var key in topTagsObj)
+							{
+								var x = {};
+								x[key] = topTagsObj[key];
+								topTags.push(x);
+							}
+														
+							topTags = _.sortBy(topTags, function(tagObj) { 
+								for (var i in tagObj)
+								{
+									return tagObj[i];
+								}
+							})
+							.map(function(tagObj) {
+								for (var i in tagObj)
+								{
+									return i;
+								}
+							})
+							.map(function(tag) {
+								return {"name": tag}
+							});
+							
+							console.log("tags",topTags);
+							
+							cb(topTags);
+						}
+						else
+							cb([]);
+					});
+				},
+				// 
+				// getTagsForURL: function(req, cb)
+				// {
+				// 	$.get(urlBase + "/urlAccess/getTags", {"accessId": req["accessId"]}, function(tags) {
+				// 		cb(tags);
+				// 	});
+				// },
+
+				insertCollection: function(req, cb)
+				{
+					$.post(urlBase + "/collection/", {"collectionName": req["collectionName"], "accessId": req["accessId"]}, function(data) {
+						cb(data);
+					});
+				},
+
+				addToCollection: function(req, cb)
+				{
+					$.post(urlBase + "/urlAccess/addToCollection", {"accessId": req["accessId"], "collectionName": req["collectionName"]}, function(data) {
+						cb(data);
+					});
+				},
+
+				removeFromCollection: function(req, cb) 
+				{
+					$.post(urlBase + "/urlAccess/removeFromCollection", {"accessId": req["accessId"]}, function(data) {
+						cb(data);
+					});
+				},
+
+				addTagForURL: function(req, cb)
+				{
+					$.post(urlBase + "/urlAccess/addTag", {"accessId": req["accessId"], "tag": req["tag"]}, function(data) {
+						cb(data);
+					});
+				},
+
+				removeTagFromURL: function(req, cb)
+				{
+					$.post(urlBase + "/urlAccess/removeTag", {"accessId": req["accessId"], "tag": req["tag"]}, function(data) {
+						cb(data);
+					});				
+				},
+
+				starURL: function(req, cb)
+				{
+					$.post(urlBase + "/urlAccess/star", {"accessId": req["accessId"]}, function(data) {
+						cb(data);
+					});
+				},
+
+				unstarURL: function(url, cb)
+				{
+					$.post(urlBase + "/urlAccess/unstar", {"accessId": req["accessId"]}, function(data) {
+						cb(data);
+					});
+				}
+			}
 			
-			var urls = [];
 			
-			console.log(jQuery);
+			chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
+				responseHandlers[request["action"]](request, sendResponse);
+			});
 			
 			chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) 
 			{
-				console.log(changeInfo, tab.status);
 				if (tab.status == "complete" && tab.url.indexOf("chrome://") != 0 && tab.url.indexOf("http://") == 0)
 				{
 					console.log("new url:" + tab.url, tab.title);
-					$.post("http://localhost:8080/url", { url: tab.url, title: tab.title, collection: "", tags: "" } );
-					// chrome.tabs.executeScript(tabId, {file: "timeSpentCalc.js"});
+					$.post(urlBase + "/url/", { url: tab.url, title: tab.title, collection: "", tags: [] }, function(accessId, textStatus) {
+						console.log("access id:", accessId, textStatus);
+						
+						chrome.tabs.sendRequest(tab.id, {"type": "save_accessId", "accessId": accessId});
+
+					});
 				}
 			});
 			
@@ -44,14 +139,17 @@
 				{
 					chrome.idle.queryState(30, function(newState)
 					{
-						if (newState == "active")
+						if (newState == "active" && tab.status == "complete")
 						{
-							// if (tab.url.indexOf("chrome://") != 0)
-							// 	console.log("1 second in " + tab.url);
+							chrome.tabs.sendRequest(tab.id, {"type": "get_accessId"}, function(accessId) {
+								console.log("Got Access Id:", accessId, "Yay!");
+								
+								$.post(urlBase + "/urlAccess/addTime", {"accessID": accessId, "incTime": 10}, function() { console.log("saved time spent!"); });
+							});
 						}
 					});
 				});
-			}, 1000);
+			}, 10000);
 		</script>
 	</head>
 </html>
