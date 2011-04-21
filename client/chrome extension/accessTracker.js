@@ -23,8 +23,9 @@ chrome.extension.onRequest.addListener(function(req, sender, sendResponse) {
 	}
 	else if (req["type"] == "getPageText")
 	{
-		readability.fetchMultiplePages = false;
+		readability.fetchMultiplePages = true;
 		var docHTML = readability.init(document, document.body.cloneNode(true));
+		// console.log(docHTML);
 		sendResponse(docHTML);
 	}
 });

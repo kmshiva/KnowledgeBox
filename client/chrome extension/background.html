@@ -5,6 +5,11 @@
 		<script src="underscore.js" type="text/javascript" charset="utf-8"></script>
 		<script>
 			var urlBase = "http://localhost:8080";
+			
+			var session = {
+				"collection": "",
+				"lastAccessed": null
+			}
 
 			var responseHandlers = 
 			{
@@ -70,6 +75,9 @@
 					$.post(urlBase + "/collection/", {"collectionName": req["collectionName"], "accessId": req["accessId"]}, function(data) {
 						cb(data);
 					});
+					
+					session["collection"] = req["collectionName"];
+					session["lastAccessed"] = new Date();
 				},
 
 				addToCollection: function(req, cb)
@@ -77,6 +85,9 @@
 					$.post(urlBase + "/urlAccess/addToCollection", {"accessId": req["accessId"], "collectionName": req["collectionName"]}, function(data) {
 						cb(data);
 					});
+					
+					session["collection"] = req["collectionName"];
+					session["lastAccessed"] = new Date();
 				},
 
 				removeFromCollection: function(req, cb) 
@@ -84,6 +95,9 @@
 					$.post(urlBase + "/urlAccess/removeFromCollection", {"accessId": req["accessId"]}, function(data) {
 						cb(data);
 					});
+					
+					session["collection"] = "";
+					session["lastAccessed"] = null;
 				},
 
 				addTagForURL: function(req, cb)
@@ -116,6 +130,26 @@
 				takeSnapshot: function(req, cb)
 				{
 					
+				},
+				getCurrentSession: function(req, cb)
+				{
+					var lastAccessed = session["lastAccessed"];
+					var currentDate = new Date();
+					
+					if (lastAccessed)
+					{
+						var elapsedTime = currentDate - lastAccessed;
+						if ((elapsedTime/1000/60) > 15)
+						{
+							session["collection"] = "";
+							session["lastAccessed"] = null;
+							cb("");
+						}
+						else
+							cb(session["collection"]);
+					}
+
+					cb("");
 				}
 			}
 			

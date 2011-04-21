@@ -14,7 +14,7 @@ import Image
 
 # import model
 
-web.config.debug = False
+web.config.debug = True
 
 urls = (
 	'/',					'Index',
@@ -129,15 +129,21 @@ class MongoDB:
 	def getURLAccesses(self):
 		return self.accesses.find({})
 		
-	def getURLAccessGrouped(self):
+	def getURLAccessGrouped(self, collectionName, onlyCollections):
 		collections = []
-		for col in db.collections.find():
-			col["pages"] = list(db.accesses.find({"collection": col["name"]}).sort("access_date"))
+		if len(collectionName) == 0:
+			for col in db.collections.find():
+				col["pages"] = list(db.accesses.find({"collection": col["name"]}).sort([("starred", pymongo.DESCENDING), ("time_spent", pymongo.DESCENDING), ("access_date", pymongo.DESCENDING)]))
+				collections.append(col)
+			if not onlyCollections:
+				col = {"name": ""};
+				col["pages"] = list(db.accesses.find({"collection": ""}).limit(500).sort([("starred", pymongo.DESCENDING), ("time_spent", pymongo.DESCENDING), ("access_date", pymongo.DESCENDING)]))
+				collections.append(col)
+		else:
+			col = {"name": collectionName};
+			col["pages"] = list(db.accesses.find({"collection": collectionName}).limit(500).sort([("starred", pymongo.DESCENDING), ("time_spent", pymongo.DESCENDING), ("access_date", pymongo.DESCENDING)]))
 			collections.append(col)
-		
-		col = {"name": ""};
-		col["pages"] = list(db.accesses.find({"collection": ""}).limit(500).sort([("starred", pymongo.DESCENDING), ("time_spent", pymongo.DESCENDING), ("access_date", pymongo.DESCENDING)]))
-		collections.append(col)
+			
 		return collections
 		
 	def saveSnapshotURL(self, accessId, snapshotURL, snapshotThumbURL):
@@ -146,6 +152,9 @@ class MongoDB:
 	
 	def savePageText(self, accessId, pageText):
 		db.accesses.update({"_id": ObjectId(accessId)}, {"$set": {"text": pageText}})
+		
+	def getAllTags(self):
+		return db.tags.find()
 
 db = MongoDB()
 
@@ -185,10 +194,13 @@ class URL:
 
 
 class URLAccess:
-	def GET(self, type):
+	def GET(self, collectionName):
 		input_data = web.input()
 		if input_data.has_key("grouped"):
-			return json.dumps(list(db.getURLAccessGrouped()), cls=ComplexEncoder)
+			if input_data.has_key("onlyCollections"):
+				return json.dumps(list(db.getURLAccessGrouped(collectionName, True)), cls=ComplexEncoder)
+			else:
+				return json.dumps(list(db.getURLAccessGrouped(collectionName, False)), cls=ComplexEncoder)
 		else:
 			return json.dumps(list(db.getURLAccesses()), cls=ComplexEncoder)
 		
@@ -265,10 +277,10 @@ class Tags:
 			print "returning urls for tag", tagName
 		else:
 			inp = web.input()
-			if inp["url"]:
-				print "return tags or url", inp["url"]
+			if inp.has_key("url"):
+				print "return tags for url", inp["url"]
 			else:
-				print "returning all tags"
+				return json.dumps(list(db.getAllTags()))
 
 if __name__ == "__main__":
 	# app.internalerror = web.debugerror

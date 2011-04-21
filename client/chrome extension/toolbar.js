@@ -44,6 +44,19 @@ var PageSetCollection = Backbone.Collection.extend({
 				return true;
 		});
 	},
+	selectCollection: function(collectionName) {
+		alert("session: searching for collection" + collectionName);
+		for (var i = 0; i < this.models.length; i++)
+		{
+			alert("session:" + this.models[i].get("name"));
+			if (this.models[i].get("name") == collectionName)
+			{
+				alert("session: found" + this.models[i].get("name"));
+				this.models[i].set({"selected": true});
+				return;
+			}
+		}
+	},
 	comparator: function(pageSet) {
 		if (pageSet.get("selected"))
 			return 0;
@@ -68,8 +81,6 @@ var PageSetCollection = Backbone.Collection.extend({
 				console.log("done", action);
 			});
 		}
-		
-		
 	},
 	onAdd: function(pageSet)
 	{
@@ -96,7 +107,7 @@ var PageTagCollection = PageSetCollection.extend({
 var PageSetView = Backbone.View.extend({
 
 	tagName: "div",
-	className: "item",
+	className: "KBitem",
 
 	template: _.template("<%= name %>"),
 	
@@ -115,7 +126,7 @@ var PageSetView = Backbone.View.extend({
 	render: function() {
 		$(this.el).html(this.template(this.model.toJSON()));
 		if (this.model.get("selected"))
-			$(this.el).addClass("selected");
+			$(this.el).addClass("KBselected");
 			
 		if (!this.model.get("visible"))
 			$(this.el).hide();
@@ -132,9 +143,9 @@ var PageSetView = Backbone.View.extend({
 	
 	select: function() {
 		if (this.model.get("selected"))
-			$(this.el).addClass("selected");
+			$(this.el).addClass("KBselected");
 		else
-			$(this.el).removeClass("selected");
+			$(this.el).removeClass("KBselected");
 	},
 	
 	visible: function() {
@@ -159,19 +170,19 @@ var PageSetCollectionView = Backbone.View.extend({
 	},
 	
 	events: {
-		"click .star": "star",
-		"click .search": "showHideSearchBox",
-		"click .add": "showHideAddBox",
-		"click .search input, .add input": "cancelClickPropagation",
-		"keyup .search input": "searchKeyUp",
-		"keyup .add input": "addKeyUp"
+		"click .KBstar": "star",
+		"click .KBsearch": "showHideSearchBox",
+		"click .KBadd": "showHideAddBox",
+		"click .KBsearch input, .KBadd input": "cancelClickPropagation",
+		"keyup .KBsearch input": "searchKeyUp",
+		"keyup .KBadd input": "addKeyUp"
 	},
 
 	render: function() {
 		var that = this;
 		
 		// TODO: can we make refactor this so that the collection does not need to know about the model view?
-		$(this.el).children(".item").remove();
+		$(this.el).children(".KBitem").remove();
 		
 		// _(this.pageSetViews).each(function(psv) {
 		// 	$(that.el).append(psv.render().el);
@@ -204,13 +215,13 @@ var PageSetCollectionView = Backbone.View.extend({
 	showHideInputBox: function(e, type) {
 		if ($(e.currentTarget).children("input:visible").length > 0)
 		{
-			$(e.currentTarget).removeClass("expanded");
+			$(e.currentTarget).removeClass("KBexpanded");
 			$(e.currentTarget).children("img").attr("src", imagehostURL + type + ".png");
 			$(e.currentTarget).children("input").hide();
 		}
 		else
 		{
-			$(e.currentTarget).addClass("expanded");
+			$(e.currentTarget).addClass("KBexpanded");
 			$(e.currentTarget).children("img").attr("src", imagehostURL + "cancel.png");
 			$(e.currentTarget).children("input").show().val("");
 			
@@ -277,15 +288,15 @@ var PageSetCollectionView = Backbone.View.extend({
 	star: function(e) {
 		console.log(this);
 		var action = "";
-		if ($(e.currentTarget).hasClass("starred"))
+		if ($(e.currentTarget).hasClass("KBstarred"))
 		{
 			action = "unstar";
-			$(e.currentTarget).removeClass("starred");
+			$(e.currentTarget).removeClass("KBstarred");
 		}
 		else
 		{
 			action = "star";
-			$(e.currentTarget).addClass("starred");
+			$(e.currentTarget).addClass("KBstarred");
 		}
 
 		chrome.extension.sendRequest({action: action, accessId: getPageAccessId()}, function() {
@@ -300,37 +311,37 @@ var PageTagCollectionView = PageSetCollectionView.extend({
 
 
 $(document).ready(function() {
-	$(document.body).append('<div id="toolbar"> \
-		<div id="collections"> \
-			<img class="star" src="' + imagehostURL + 'star.png"> \
-			<img class="annotate" src="' + imagehostURL + 'pencil.png"> \
-			<div class="label"> \
+	$(document.body).append('<div id="KBtoolbar"> \
+		<div id="KBcollections"> \
+			<img class="KBstar" src="' + imagehostURL + 'star.png"> \
+			<img class="KBannotate" src="' + imagehostURL + 'pencil.png"> \
+			<div class="KBlabel"> \
 				Collections \
 			</div> \
-			<div class="add">&nbsp; \
+			<div class="KBadd">&nbsp; \
 				<img src="' + imagehostURL + 'add.png"> \
 				<input type="text" value="" style="display: none"></input> \
 			</div> \
-			<div class="search">&nbsp; \
+			<div class="KBsearch">&nbsp; \
 				<img src="' + imagehostURL + 'search.png"> \
 				<input type="text" value="" style="display: none"></input> \
 			</div> \
 		</div> \
-		<div id="tags"> \
-			<div class="label"> \
+		<div id="KBtags"> \
+			<div class="KBlabel"> \
 				Tags \
 			</div> \
-			<div class="add">&nbsp; \
+			<div class="KBadd">&nbsp; \
 				<img src="' + imagehostURL + 'add.png"> \
 				<input type="text" value="" style="display: none"></input> \
 			</div> \
-			<div class="search">&nbsp; \
+			<div class="KBsearch">&nbsp; \
 				<img src="' + imagehostURL + 'search.png"> \
 				<input type="text" value="" style="display: none"></input> \
 			</div> \
 		</div> \
 	</div> \
-	<div class="spacerDiv"> \
+	<div class="KBspacerDiv"> \
 	&nbsp;</div>'
 	);
 	
@@ -342,10 +353,18 @@ $(document).ready(function() {
 
 			collectionsView = new PageSetCollectionView({
 				collection: pageSets,
-				el: $("#collections")[0]
+				el: $("#KBcollections")[0]
 			});
 
 			collectionsView.render();
+			
+			chrome.extension.sendRequest({action: "getCurrentSession"}, function(collectionName) {
+				if (collectionName != "")
+				{
+					alert("session:" + collectionName);
+					pageSets.selectCollection(collectionName);
+				}
+			});
 		}
 	});
 	
@@ -355,7 +374,7 @@ $(document).ready(function() {
 
 		tagsView = new PageTagCollectionView({
 			collection: tagSets,
-			el: $("#tags")[0]
+			el: $("#KBtags")[0]
 		});
 
 		tagsView.render();

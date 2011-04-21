@@ -1,11 +1,11 @@
-.spacerDiv
+.KBspacerDiv
 {
 /*	background-color: green;*/
 	height: 32px;
 	width: 100%;
 }
 
-#toolbar 
+#KBtoolbar 
 {
 	font-family: Helvetica, Arial;
 	font-size: 16px;
@@ -26,7 +26,7 @@
 	transition: all 0.2s ease-in-out;
 }
 
-#toolbar #collections
+#KBtoolbar #KBcollections
 {
 	outline1: 1px solid red;
 	width: 60%;
@@ -36,7 +36,7 @@
 
 }
 
-#toolbar .star, #toolbar .starred, #toolbar .annotate
+#KBtoolbar .KBstar, #KBtoolbar .KBstarred, #KBtoolbar .KBannotate
 {
 	float: left;
 	margin: 3px 5px;
@@ -44,17 +44,17 @@
 	opacity:  0.4;
 }
 
-#toolbar .star:hover, #toolbar .annotate:hover
+#KBtoolbar .KBstar:hover, #KBtoolbar .KBannotate:hover
 {
 	opacity:  1.0;
 }
 
-#toolbar .starred
+#KBtoolbar .KBstarred
 {
 	opacity: 1.0 !important;
 }
 
-#toolbar #tags
+#KBtoolbar #KBtags
 {
 	outline1: 1px solid green;		
 	width: 35%;
@@ -64,7 +64,7 @@
 	margin-left: 5%;
 }
 
-#toolbar .label
+#KBtoolbar .KBlabel
 {
 	float: left;
 	width1: 100px;
@@ -78,14 +78,14 @@
 	font-weight: bold;
 }
 
-#toolbar .search, #toolbar .add
+#KBtoolbar .KBsearch, #KBtoolbar .KBadd
 {
 	float: left;
 	margin: 3px 0px;
 	height: 25px;
 }
 
-#toolbar input
+#KBtoolbar input
 {
 	float: left;
 	height: 20px;
@@ -97,7 +97,7 @@
 	border-radius: 10px;
 }
 
-#toolbar .item
+#KBtoolbar .KBitem
 {
 	float: left;
 	margin: 7px 5px;
@@ -108,7 +108,7 @@
 	border-radius: 10px;
 }
 
-#toolbar .item:hover, #toolbar  .selected
+#KBtoolbar .KBitem:hover, #KBtoolbar .KBselected
 {
 	background-color: darkGrey;
 	color: white;
@@ -117,7 +117,7 @@
 	cursor: pointer;
 }
 
-#toolbar .search, #toolbar .add
+#KBtoolbar .KBsearch, #KBtoolbar .KBadd
 {
 	margin-left: 5px;
 	width: 30px;
@@ -135,19 +135,19 @@
 	transition: all 0.2s ease-in-out;
 }
 
-#toolbar .expanded
+#KBtoolbar .KBexpanded
 {
 	width: 135px;
 }
 
-#toolbar .search img, #toolbar .add img
+#KBtoolbar .KBsearch img, #KBtoolbar .KBadd img
 {
 	float: right;
 	padding-top: 1px;
 	outline1: 1px solid green;
 }
 
-#toolbar .search input, #toolbar .add input
+#KBtoolbar .KBsearch input, #KBtoolbar .KBadd input
 {
 	border1: 1px solid blue;
 	border1: 0px;
