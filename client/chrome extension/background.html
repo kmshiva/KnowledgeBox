@@ -100,18 +100,22 @@
 					});				
 				},
 
-				starURL: function(req, cb)
+				star: function(req, cb)
 				{
 					$.post(urlBase + "/urlAccess/star", {"accessId": req["accessId"]}, function(data) {
 						cb(data);
 					});
 				},
 
-				unstarURL: function(url, cb)
+				unstar: function(url, cb)
 				{
 					$.post(urlBase + "/urlAccess/unstar", {"accessId": req["accessId"]}, function(data) {
 						cb(data);
 					});
+				},
+				takeSnapshot: function(req, cb)
+				{
+					
 				}
 			}
 			
@@ -128,7 +132,19 @@
 					$.post(urlBase + "/url/", { url: tab.url, title: tab.title, collection: "", tags: [] }, function(accessId, textStatus) {
 						console.log("access id:", accessId, textStatus);
 						
-						chrome.tabs.sendRequest(tab.id, {"type": "save_accessId", "accessId": accessId});
+						chrome.tabs.sendRequest(tab.id, {"type": "save_accessId", "accessId": accessId}, function(resp) {
+							chrome.tabs.captureVisibleTab(tab.windowId, null, function(dataURL) {
+								$.post(urlBase + "/urlAccess/snapshot", {"snapshot": dataURL, "url": tab.url, "title": tab.title, "accessId": accessId}, function(data) {
+									console.log("snapshot done!");
+								});
+							});
+							
+							chrome.tabs.sendRequest(tab.id, {"type": "getPageText"}, function(resp) {
+								$.post(urlBase + "/urlAccess/pageText", {"accessId": accessId, "text": resp}, function(data) {
+									console.log("text capture done!");
+								});
+							});
+						});
 
 					});
 				}

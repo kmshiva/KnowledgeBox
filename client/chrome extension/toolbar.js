@@ -159,6 +159,7 @@ var PageSetCollectionView = Backbone.View.extend({
 	},
 	
 	events: {
+		"click .star": "star",
 		"click .search": "showHideSearchBox",
 		"click .add": "showHideAddBox",
 		"click .search input, .add input": "cancelClickPropagation",
@@ -272,6 +273,24 @@ var PageSetCollectionView = Backbone.View.extend({
 	commonKeyUp: function(e, type) {
 		if (e.which == 27) // escape key
 			$(e.currentTarget).parent().click();
+	},
+	star: function(e) {
+		console.log(this);
+		var action = "";
+		if ($(e.currentTarget).hasClass("starred"))
+		{
+			action = "unstar";
+			$(e.currentTarget).removeClass("starred");
+		}
+		else
+		{
+			action = "star";
+			$(e.currentTarget).addClass("starred");
+		}
+
+		chrome.extension.sendRequest({action: action, accessId: getPageAccessId()}, function() {
+			console.log("done", action);
+		});
 	}
 });
 
@@ -283,6 +302,8 @@ var PageTagCollectionView = PageSetCollectionView.extend({
 $(document).ready(function() {
 	$(document.body).append('<div id="toolbar"> \
 		<div id="collections"> \
+			<img class="star" src="' + imagehostURL + 'star.png"> \
+			<img class="annotate" src="' + imagehostURL + 'pencil.png"> \
 			<div class="label"> \
 				Collections \
 			</div> \
@@ -340,5 +361,7 @@ $(document).ready(function() {
 		tagsView.render();
 	});
 	
-
+	chrome.extension.sendRequest({action: "takeSnapshot", url: window.location.href, title: document.title}, function(data) {
+		console.log("snapshot done!");
+	});
 });

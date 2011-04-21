@@ -3,12 +3,18 @@ import json
 import datetime
 import subprocess
 import re
+import pymongo
 from pymongo import Connection
 from pymongo.objectid import ObjectId
+import base64
+import uuid
+import urlparse
+import os.path
+import Image
 
 # import model
 
-web.config.debug = True
+web.config.debug = False
 
 urls = (
 	'/',					'Index',
@@ -26,8 +32,21 @@ session = web.session.Session(app, web.session.DiskStore('sessions'), initialize
 # render = web.template.render('templates/', base='base', globals={'session': session, 'str': str})
 
 excludedURLs = [
-	re.compile('http://www.google.com/url\?.*'),
+	'http://www.google.com/url',
+	'http://localhost:8080/',
+	'http://pinboard.in/',
+	'http://reddit.com/',
+	'http://www.google.com/search',
 ]
+
+class ComplexEncoder(json.JSONEncoder):
+	def default(self, obj):
+		if isinstance(obj, ObjectId):
+			return str(obj)
+		elif isinstance(obj, datetime.datetime):
+			return obj.isoformat()
+		else:
+			return json.JSONEncoder.default(self, obj)
 
 class MongoDB:
 	def __init__(self):
@@ -37,16 +56,19 @@ class MongoDB:
 		self.accesses = self.db.accesses
 		self.collections = self.db.collections
 		
-	def insertURLAccess(self, pageURL, collectionName, tags):
+	def insertURLAccess(self, pageURL, pageTitle, collectionName, tags):
 		urlDoc = self.urls.find_one({"url": pageURL})
 		accessDoc = {
 				'access_date': datetime.datetime.now(),
-				'collection': "",
+				'collection': collectionName,
 				'content': '',
 				'highlights': {},
 				'snapshot': '',
 				'tags': [],
-				'time_spent': 0
+				'time_spent': 0,
+				'page_title': pageTitle,
+				'url': pageURL,
+				'starred': False
 		}
 		
 		if urlDoc is None:
@@ -102,9 +124,37 @@ class MongoDB:
 		
 	def insertCollection(self, collectionName):
 		col = {"name": collectionName}
-		self.collections.save(col)	
+		self.collections.save(col)
+		
+	def getURLAccesses(self):
+		return self.accesses.find({})
+		
+	def getURLAccessGrouped(self):
+		collections = []
+		for col in db.collections.find():
+			col["pages"] = list(db.accesses.find({"collection": col["name"]}).sort("access_date"))
+			collections.append(col)
+		
+		col = {"name": ""};
+		col["pages"] = list(db.accesses.find({"collection": ""}).limit(500).sort([("starred", pymongo.DESCENDING), ("time_spent", pymongo.DESCENDING), ("access_date", pymongo.DESCENDING)]))
+		collections.append(col)
+		return collections
+		
+	def saveSnapshotURL(self, accessId, snapshotURL, snapshotThumbURL):
+		print accessId, snapshotURL
+		db.accesses.update({"_id": ObjectId(accessId)}, {"$set": {"snapshot": snapshotURL, "snapshotThumb": snapshotThumbURL}})
+	
+	def savePageText(self, accessId, pageText):
+		db.accesses.update({"_id": ObjectId(accessId)}, {"$set": {"text": pageText}})
 
 db = MongoDB()
+
+def isExcludedURL(url):
+	for excURL in excludedURLs:
+		if url.startswith(excURL):
+			return True
+	
+	return False
 
 
 class Index:
@@ -123,12 +173,10 @@ class URL:
 		collectionName = postData["collection"]
 		tags = postData["tags"]
 		
-		for regEx in excludedURLs:
-			print regEx
-			if regEx.match(pageUrl, re.I):
-				return
+		if isExcludedURL(pageUrl):
+			return
 		
-		urlDoc, accessDoc = db.insertURLAccess(pageUrl, collectionName, tags)
+		urlDoc, accessDoc = db.insertURLAccess(pageUrl, pageTitle, collectionName, tags)
 		
 		# subprocess.Popen(["sleep", "10"])
 		# subprocess.Popen(["python", "pageDownloader.py", pageUrl, pageTitle], cwd="pageDownloader")
@@ -137,8 +185,12 @@ class URL:
 
 
 class URLAccess:
-	def GET(self):
-		return list(model.getURLAccesses())
+	def GET(self, type):
+		input_data = web.input()
+		if input_data.has_key("grouped"):
+			return json.dumps(list(db.getURLAccessGrouped()), cls=ComplexEncoder)
+		else:
+			return json.dumps(list(db.getURLAccesses()), cls=ComplexEncoder)
 		
 	def POST(self, type):
 		input_data = web.input()
@@ -158,6 +210,12 @@ class URLAccess:
 			db.star(input_data["accessId"])
 		elif type == "unstar":
 			db.unstar(input_data["accessId"])
+		elif type == "snapshot":
+			if isExcludedURL(input_data["url"]):
+				return
+			self.saveSnapshot(input_data["url"], input_data["title"], input_data["accessId"], input_data["snapshot"])
+		elif type == "pageText":
+			db.savePageText(input_data["accessId"], input_data["text"])
 		
 		# if input_data.action == "insert":
 		# 			urlAccessId = model.insertURLAccess(input_data.url, datetime.datetime.now())
@@ -165,6 +223,32 @@ class URLAccess:
 		# 		elif input_data.action == "addTime":
 		# 			urlAccessId = model.addSpentTimeForURLAccess(input_data.urlAccessId, input_data.timeSpent)
 		# 			return json.dumps({"urlAccessId": urlAccessId})
+	def sanitizePath(self, path):
+		invalidChars = ['>', '<', ':', '"', '\\', '/', '|', '?','*', '-']
+		for invalidChar in invalidChars:
+			path = path.replace(invalidChar, "_")
+		
+		return path
+	
+	def saveSnapshot(self, url, title, accessId, data):
+		dateDir = datetime.datetime.today().strftime("%d %b %Y").strip()
+		hostDir = urlparse.urlparse(url).hostname
+		pageTitleDir = self.sanitizePath(title) + "_" + str(uuid.uuid4())
+		
+		outputDir = os.path.join("static", "savedPages", dateDir, hostDir, pageTitleDir, "snapshot")
+		
+		if not os.path.exists(outputDir):
+			os.makedirs(outputDir)
+		
+		fd = open(os.path.join(outputDir, "snapshot.png"), "wb")
+		fd.write(base64.b64decode(data[22:]))
+		fd.close()
+		
+		img = Image.open(os.path.join(outputDir, "snapshot.png"))
+		img = img.resize((260, 200), Image.ANTIALIAS)
+		img.save(os.path.join(outputDir, "snapshot_thumb.png"))
+		
+		db.saveSnapshotURL(accessId, "http://localhost:8080/" + os.path.join(outputDir, "snapshot.png"), "http://localhost:8080/" + os.path.join(outputDir, "snapshot_thumb.png"))
 		
 class Collection:
 	def GET(self, collectionName):

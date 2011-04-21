@@ -36,6 +36,24 @@
 
 }
 
+#toolbar .star, #toolbar .starred, #toolbar .annotate
+{
+	float: left;
+	margin: 3px 5px;
+	height: 25px;
+	opacity:  0.4;
+}
+
+#toolbar .star:hover, #toolbar .annotate:hover
+{
+	opacity:  1.0;
+}
+
+#toolbar .starred
+{
+	opacity: 1.0 !important;
+}
+
 #toolbar #tags
 {
 	outline1: 1px solid green;		
