@@ -144,12 +144,15 @@
 							session["collection"] = "";
 							session["lastAccessed"] = null;
 							cb("");
+							return;
 						}
 						else
 							cb(session["collection"]);
+							return;
 					}
 
 					cb("");
+					return;
 				}
 			}
 			
@@ -182,6 +185,10 @@
 
 					});
 				}
+			});
+			
+			chrome.tabs.onSelectionChanged.addListener(function(tabId, selectInfo) {
+				console.log("Selected:", tabId, selectInfo);
 			});
 			
 			setInterval(function(){
