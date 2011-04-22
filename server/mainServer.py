@@ -236,7 +236,7 @@ class URLAccess:
 		# 			urlAccessId = model.addSpentTimeForURLAccess(input_data.urlAccessId, input_data.timeSpent)
 		# 			return json.dumps({"urlAccessId": urlAccessId})
 	def sanitizePath(self, path):
-		invalidChars = ['>', '<', ':', '"', '\\', '/', '|', '?','*', '-']
+		invalidChars = ['>', '<', ':', '"', '\\', '/', '|', '?','*', '-', '#']
 		for invalidChar in invalidChars:
 			path = path.replace(invalidChar, "_")
 		
