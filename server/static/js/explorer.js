@@ -209,7 +209,7 @@ $(document).ready(function() {
 			{
 				var self = this;
 				setTimeout(function() {
-					self.svgSet.animate({translation: "" + (newX - self.x) + " " + (newY - self.y)}, delay, ">");
+					self.svgSet.animate({translation: "" + (newX - self.x) + " " + (newY - self.y)}, delay, "<>");
 					self.x = newX;
 					self.y = newY;
 				}, delay ? 0 : delay);
@@ -256,7 +256,7 @@ $(document).ready(function() {
 			this.svgSet = this.paper.set();
 			var placeholder = this.paper.image("http://localhost:8080/static/images/collectionPlaceholder.jpg", 0, 0, this.width, this.height);
 			var r = this.paper.rect(0, 0, this.width, this.height);
-			r.attr({"stroke": "blue", "stroke-width": 1, "fill": "lightGrey"});
+			r.attr({"stroke-width": 0, "fill": this.model.get("color")});
 			this.title = this.paper.text(0, this.height+15, this.model.get("name") ? this.model.get("name").substr(0, 40) : "");
 			this.title.attr({"text-anchor": "start"});
 			this.title.attr({ "font-size": 12, "font-family": "Helvetica, Arial, sans-serif", "font-weight": "bold" });
@@ -268,7 +268,9 @@ $(document).ready(function() {
 			
 			var self = this;
 			_.each(this.model.get("pages"), function(page) {
-				self.pageViews.push(new PageView({model: page, paper: self.paper}));
+				var pv = new PageView({model: page, paper: self.paper});
+				pv.move(self.x, self.y);
+				self.pageViews.push(pv);
 			});
 		},
 		onClick: function(evt) {
@@ -307,9 +309,14 @@ $(document).ready(function() {
 			{
 				var self = this;
 				setTimeout(function() {
-					self.svgSet.animate({translation: "" + (newX - self.x) + " " + (newY - self.y)}, delay, ">");
-					self.x = newX;
-					self.y = newY;
+					self.svgSet.animate({translation: "" + (newX - self.x) + " " + (newY - self.y)}, delay, "<>", function() {
+						self.x = newX;
+						self.y = newY;
+						
+						_.each(this.pageViews, function(pv) {
+							pv.move(self.x, self.y);
+						});
+					});
 				}, delay ? 0 : delay);
 			}
 			else
@@ -317,6 +324,11 @@ $(document).ready(function() {
 				this.svgSet.translate(newX - this.x, newY - this.y);
 				this.x = newX;
 				this.y = newY;
+				
+				var self = this;
+				_.each(this.pageViews, function(pv) {
+					pv.move(self.x, self.y);
+				});
 			}
 		},
 		getLayoutItems: function() {
